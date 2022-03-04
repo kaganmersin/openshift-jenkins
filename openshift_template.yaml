@@ -1,0 +1,147 @@
+apiVersion: v1
+kind: Template
+metadata:
+  name: ${PROJECT_NAME} 
+objects:   
+  - apiVersion: apps.openshift.io/v1
+    kind: DeploymentConfig
+    metadata:
+      annotations:
+        openshift.io/generated-by: OpenShiftWebConsole
+      generation: 8
+      labels:
+        app: ${PROJECT_NAME} 
+        networking/egress-allow: 'true'
+        networking/ingressallow-router: 'true'           
+      name: ${PROJECT_NAME} 
+      namespace: "${NAMESPACE}"
+    spec:
+      replicas: "${{REPLICA}}"
+      revisionHistoryLimit: 10
+      selector:
+        app: ${PROJECT_NAME} 
+        deploymentconfig: ${PROJECT_NAME} 
+      strategy:
+        activeDeadlineSeconds: 21600
+        resources: {}
+        rollingParams:
+          intervalSeconds: 1
+          maxSurge: 25%
+          maxUnavailable: 25%
+          timeoutSeconds: 600
+          updatePeriodSeconds: 1
+        type: Rolling
+      template:
+        metadata:
+          annotations:
+            openshift.io/generated-by: OpenShiftWebConsole
+          creationTimestamp: null
+          labels:
+            app: ${PROJECT_NAME} 
+            deploymentconfig: ${PROJECT_NAME} 
+            networking/egress-allow: 'true'
+            networking/ingress-allow-router: 'true'             
+        spec:
+          containers:
+            - image: >-
+                ${REGISTRY_URL}/${NAMESPACE}/${PROJECT_NAME}:${IMAGE_TAG}
+              imagePullPolicy: Always
+              name: ${PROJECT_NAME} 
+              ports:
+                - containerPort: 8080
+                  protocol: TCP
+              resources: 
+                limits:
+                  cpu: 800m
+                  memory: 2000Mi
+                requests:
+                  cpu: 200m
+                  memory: 500Mi
+              terminationMessagePath: /dev/termination-log
+              terminationMessagePolicy: File
+              volumeMounts:
+                - mountPath: /config
+                  name: ${PROJECT_NAME}
+                  readOnly: true
+          dnsPolicy: ClusterFirst
+          restartPolicy: Always
+          schedulerName: default-scheduler
+          securityContext: {}
+          terminationGracePeriodSeconds: 30
+          volumes:
+            - secret:
+                secretName: ${PROJECT_NAME} 
+                desfaultMode: 420
+              name: ${PROJECT_NAME}
+      test: false
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      annotations:
+        openshift.io/generated-by: OpenShiftWebConsole
+      labels:
+        app: ${PROJECT_NAME} 
+      name: ${PROJECT_NAME} 
+      namespace: "${NAMESPACE}"
+    spec:
+      ports:
+        - name: 8080-tcp
+          port: 8080
+          protocol: TCP
+          targetPort: 8080
+      selector:
+        deploymentconfig: ${PROJECT_NAME} 
+      sessionAffinity: None
+      type: ClusterIP
+  - apiVersion: route.openshift.io/v1
+    kind: Route
+    metadata:
+      annotations:
+        openshift.io/host.generated: 'true'
+      labels:
+        app: ${PROJECT_NAME} 
+      name: ${PROJECT_NAME} 
+      namespace: "${NAMESPACE}"
+    spec:
+      host: ${PROJECT_NAME}-${NAMESPACE}.${FQDN}
+      port:
+        targetPort: 8080-tcp
+      tls:
+        termination: edge
+      to:
+        kind: Service
+        name: ${PROJECT_NAME} 
+        weight: 100
+      wildcardPolicy: None
+
+parameters:
+- name: NAMESPACE
+  displayName: OpenShift Container Project Namespace
+  description: OpenShift Container Project Namespace 
+  required: true      
+- name: PROJECT_NAME
+  displayName: OpenShift Container Name
+  description: Application Name
+  required: true  
+- name: REPLICA
+  displayName: OpenShift Container Replicas
+  description: OpenShift Container Replica Edited
+  value: "1"
+  required: true
+- name: IMAGE_TAG
+  displayName: OpenShift Container Replicas
+  description: OpenShift Container Replica Edited
+  required: true
+- name: REGISTRY_URL
+  displayName: OpenShift REGISTRY_URL 
+  description: OpenShift REGISTRY_URL
+  required: true
+- name: FQDN
+  displayName: OpenShift FQDN 
+  description: OpenShift FQDN
+  required: true  
+  
+
+
+
+    
